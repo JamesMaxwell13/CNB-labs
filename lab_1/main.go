@@ -8,6 +8,7 @@ import (
 	"go.bug.st/serial"
 	"lab_1/gui"
 	"lab_1/rs232"
+	"sync"
 	"time"
 )
 
@@ -32,14 +33,14 @@ func TransmitData(u *gui.UserInterface) {
 	}
 }
 
-func ReceiveData(u *gui.UserInterface) {
+func ReceiveData(u *gui.UserInterface, mutex *sync.Mutex) {
 	for {
+		mutex.Lock()
 		if u.OutputEntry != nil && u.OutputPort.SerialPort != nil {
 			data, err := u.OutputPort.ReadBytes()
-			if err != nil {
-				if err.Error() != "Port has been closed" {
-					gui.ErrorWindow(err, u.App)
-				}
+			mutex.Unlock()
+			if err != nil && err.Error() != "Port has been closed" {
+				gui.ErrorWindow(err, u.App)
 				continue
 			}
 			if len(data) > 0 {
@@ -47,6 +48,8 @@ func ReceiveData(u *gui.UserInterface) {
 				u.ReceivedBytes++
 				u.UpdateStatus()
 			}
+		} else {
+			mutex.Unlock()
 		}
 	}
 }
@@ -85,7 +88,8 @@ func main() {
 			time.Sleep(100 * time.Millisecond)
 		}
 	}()
+	mutex := new(sync.Mutex)
 	go TransmitData(u)
-	go ReceiveData(u)
+	go ReceiveData(u, mutex)
 	w.ShowAndRun()
 }
