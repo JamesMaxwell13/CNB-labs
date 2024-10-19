@@ -24,7 +24,7 @@ func TransmitData(u *gui.UserInterface) {
 					if err != nil {
 						gui.ErrorWindow(err, u.App)
 					}
-					u.TransmittedBytes++
+					u.TransmittedBytes += len([]byte(string(newChar)))
 					u.UpdateStatus()
 				}
 				prevText = currentText
@@ -45,8 +45,6 @@ func ReceiveData(u *gui.UserInterface, mutex *sync.Mutex) {
 			}
 			if len(data) > 0 {
 				u.OutputEntry.SetText(u.OutputEntry.Text + string(data))
-				u.ReceivedBytes++
-				u.UpdateStatus()
 			}
 		} else {
 			mutex.Unlock()
@@ -61,24 +59,23 @@ func main() {
 	u.App.Settings().SetTheme(&gui.СustomTheme{Theme: theme.DefaultTheme()})
 	ports, err := serial.GetPortsList()
 	if err != nil || len(ports) == 0 {
-		gui.ErrorWindow(errors.New("No rs232 ports found"), u.App)
+		gui.ErrorWindow(errors.New("No serial ports found"), u.App)
 		time.Sleep(time.Minute)
-		panic("No rs232 ports found!")
+		panic("No serial ports found!")
 	}
 	u.InputPort = new(rs232.Port)
 	u.OutputPort = new(rs232.Port)
 	u.TransmittedBytes = 0
-	u.ReceivedBytes = 0
 	u.InitEntries()
 	u.InitSelects(ports)
 	u.UpdateStatus()
 	u.MakeGrid()
 	w.SetContent(u.Grid)
-	w.Resize(fyne.NewSize(600, 450))
+	w.Resize(fyne.NewSize(700, 450))
 	go func() {
 		for {
 			if u.InputPort.SerialPort == nil || u.OutputPort.SerialPort == nil {
-				err := gui.UpdatePorts(u.SelectInputPort, u.SelectOutputPort, ports)
+				err := gui.UpdatePorts(u.SelectInputPort, u.SelectOutputPort)
 				if err != nil {
 					gui.ErrorWindow(err, u.App)
 				}

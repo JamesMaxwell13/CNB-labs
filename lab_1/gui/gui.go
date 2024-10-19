@@ -53,7 +53,6 @@ type UserInterface struct {
 	InputPort        *rs232.Port
 	OutputPort       *rs232.Port
 	TransmittedBytes int
-	ReceivedBytes    int
 	InputEntry       *widget.Entry
 	OutputEntry      *widget.Entry
 	StatusEntry      *widget.Entry
@@ -77,7 +76,7 @@ func (u *UserInterface) InitSelects(ports []string) {
 			if err != nil {
 				ErrorWindow(err, u.App)
 			}
-			err = UpdatePorts(u.SelectInputPort, u.SelectOutputPort, ports)
+			err = UpdatePorts(u.SelectInputPort, u.SelectOutputPort)
 			if err != nil {
 				ErrorWindow(err, u.App)
 			}
@@ -97,7 +96,7 @@ func (u *UserInterface) InitSelects(ports []string) {
 			if err != nil {
 				ErrorWindow(err, u.App)
 			}
-			err = UpdatePorts(u.SelectInputPort, u.SelectOutputPort, ports)
+			err = UpdatePorts(u.SelectInputPort, u.SelectOutputPort)
 			if err != nil {
 				ErrorWindow(err, u.App)
 			}
@@ -168,13 +167,13 @@ func (u *UserInterface) UpdateStatus() {
 	mode := rs232.DefaultConfig()
 	status := fmt.Sprintf("Ports parameters:\n"+
 		"Baudrate - %d\nData bits - %d\nStop bits - %d\n"+
-		"Parity bits - %d\nBytes transmitted - %d\nBytes raceived - %d", mode.BaudRate, mode.DataBits,
-		int(mode.StopBits)+1, mode.Parity, u.TransmittedBytes, u.ReceivedBytes)
+		"Parity - No\nBytes transmitted - %d", mode.BaudRate, mode.DataBits,
+		int(mode.StopBits)+1, u.TransmittedBytes)
 	u.StatusEntry.SetText(status)
 }
 
-func UpdatePorts(selectInputPort, selectOutputPort *widget.Select, allPorts []string) error {
-	newPorts, err := rs232.RemovePorts(allPorts)
+func UpdatePorts(selectInputPort, selectOutputPort *widget.Select) error {
+	newPorts, err := rs232.RemovePorts()
 	if err != nil {
 		return err
 	}

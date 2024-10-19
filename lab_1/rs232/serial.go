@@ -17,7 +17,7 @@ type Port struct {
 
 func DefaultConfig() *serial.Mode {
 	return &serial.Mode{
-		BaudRate: 256000,
+		BaudRate: 4000000,
 		DataBits: 8,
 		StopBits: serial.OneStopBit,
 		Parity:   serial.NoParity,
@@ -45,7 +45,7 @@ func (p *Port) ClosePort() error {
 			log.Printf("Port %s close failed\n", p.Name)
 			return err
 		}
-		log.Printf("Port %s closed successfully\n", p.Name)
+		log.Printf("Port %s closed successfull\n", p.Name)
 		p.SerialPort = nil
 	}
 	return nil
@@ -110,20 +110,24 @@ func PortIsOpenThisProcess(name string) bool {
 	return false
 }
 
-func RemovePorts(allPorts []string) ([]string, error) {
-	if len(allPorts) == 0 {
-		return nil, errors.New("No rs232 ports found!")
+func RemovePorts() ([]string, error) {
+	ports, err := serial.GetPortsList()
+	if err != nil {
+		return nil, err
+	}
+	if len(ports) == 0 {
+		return nil, errors.New("No serial ports found!")
 	}
 	availablePorts := make([]string, 0)
-	for i := 0; i < len(allPorts); i++ {
-		if !PortIsOpen(allPorts[i]) {
-			availablePorts = append(availablePorts, allPorts[i])
+	for i := 0; i < len(ports); i++ {
+		if !PortIsOpen(ports[i]) {
+			availablePorts = append(availablePorts, ports[i])
 		} else {
-			if PortIsOpenThisProcess(allPorts[i]) {
+			if PortIsOpenThisProcess(ports[i]) {
 				if i%2 == 0 {
 					i++
 				} else {
-					if !PortIsOpen(allPorts[i-1]) {
+					if !PortIsOpen(ports[i-1]) && len(availablePorts) > 0 {
 						availablePorts = append(availablePorts[0 : len(availablePorts)-1])
 					}
 				}
