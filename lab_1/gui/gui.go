@@ -167,7 +167,8 @@ func (u *UserInterface) UpdateStatus() {
 	mode := rs232.DefaultConfig()
 	status := fmt.Sprintf("Ports parameters:\n"+
 		"Baudrate - %d\nData bits - %d\nStop bits - %d\n"+
-		"Parity - No\nBytes transmitted - %d", mode.BaudRate, mode.DataBits,
+		"Parity - No\nStatus bits - RTS=true, DTR=true\n"+
+		"Bytes transmitted - %d", mode.BaudRate, mode.DataBits,
 		int(mode.StopBits)+1, u.TransmittedBytes)
 	u.StatusEntry.SetText(status)
 }

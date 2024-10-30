@@ -8,7 +8,7 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"image/color"
-	"lab_1/rs232"
+	"lab_2/rs232"
 	"log"
 	"strings"
 )
@@ -114,7 +114,16 @@ func (u *UserInterface) InitEntries() {
 			u.InputEntry.SetText(prevText)
 			u.InputEntry.CursorRow = len(newText)
 		} else {
-			prevText = newText
+			filteredText := ""
+			for _, char := range newText {
+				if char == '1' || char == '0' || char == '\n' {
+					filteredText += string(char)
+				}
+			}
+			if filteredText != newText {
+				u.InputEntry.SetText(filteredText)
+			}
+			prevText = filteredText
 		}
 	}
 	u.OutputEntry = InitReadOnlyEntry()
@@ -163,12 +172,13 @@ func (u *UserInterface) MakeGrid() {
 		column3)
 }
 
-func (u *UserInterface) UpdateStatus() {
+func (u *UserInterface) UpdateStatus(formattedPacket string) {
 	mode := rs232.DefaultConfig()
 	status := fmt.Sprintf("Ports parameters:\n"+
 		"Baudrate - %d\nData bits - %d\nStop bits - %d\n"+
-		"Parity - No\nBytes transmitted - %d", mode.BaudRate, mode.DataBits,
-		int(mode.StopBits)+1, u.TransmittedBytes)
+		"Parity - No\nStatus bits - RTS=true, DTR=true\n"+
+		"Bytes transmitted - %d,\nPacket structure -\n%s", mode.BaudRate, mode.DataBits,
+		int(mode.StopBits)+1, u.TransmittedBytes, formattedPacket)
 	u.StatusEntry.SetText(status)
 }
 

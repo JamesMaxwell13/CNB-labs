@@ -6,8 +6,9 @@ import (
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/theme"
 	"go.bug.st/serial"
-	"lab_1/gui"
-	"lab_1/rs232"
+	"lab_2/gui"
+	"lab_2/packet"
+	"lab_2/rs232"
 	"sync"
 	"time"
 )
@@ -17,16 +18,20 @@ func TransmitData(u *gui.UserInterface) {
 	for {
 		if u.InputEntry != nil && u.InputPort.SerialPort != nil {
 			currentText := u.InputEntry.Text
-			if len(currentText) > len(prevText) {
-				newChars := []rune(currentText[len(prevText):])
-				for _, newChar := range newChars {
-					err := u.InputPort.WriteBytes([]byte(string(newChar)))
-					if err != nil {
-						gui.ErrorWindow(err, u.App)
-					}
-					u.TransmittedBytes += len([]byte(string(newChar)))
-					u.UpdateStatus()
+			if len(currentText)-len(prevText) == 7 {
+				rawPacket, formattedPacket, err := packet.SerializePacket(
+					currentText[len(prevText):],
+					u.InputPort.Number,
+				)
+				if err != nil {
+					gui.ErrorWindow(err, u.App)
 				}
+				err = u.InputPort.WriteBytes(rawPacket)
+				if err != nil {
+					gui.ErrorWindow(err, u.App)
+				}
+				u.TransmittedBytes += 7
+				u.UpdateStatus(formattedPacket)
 				prevText = currentText
 			}
 		}
@@ -37,14 +42,19 @@ func ReceiveData(u *gui.UserInterface, mutex *sync.Mutex) {
 	for {
 		mutex.Lock()
 		if u.OutputEntry != nil && u.OutputPort.SerialPort != nil {
-			data, err := u.OutputPort.ReadBytes()
+			rawData, err := u.OutputPort.ReadBytes()
 			mutex.Unlock()
 			if err != nil && err.Error() != "Port has been closed" {
 				gui.ErrorWindow(err, u.App)
 				continue
 			}
-			if len(data) > 0 {
-				u.OutputEntry.SetText(u.OutputEntry.Text + string(data))
+			if len(rawData) > 0 {
+				data, errPacket := packet.DeserializePacket(rawData)
+				if errPacket != nil {
+					gui.ErrorWindow(errPacket, u.App)
+					continue
+				}
+				u.OutputEntry.SetText(u.OutputEntry.Text + data)
 			}
 		} else {
 			mutex.Unlock()
@@ -68,10 +78,10 @@ func main() {
 	u.TransmittedBytes = 0
 	u.InitEntries()
 	u.InitSelects(ports)
-	u.UpdateStatus()
+	u.UpdateStatus("")
 	u.MakeGrid()
 	w.SetContent(u.Grid)
-	w.Resize(fyne.NewSize(700, 450))
+	w.Resize(fyne.NewSize(675, 475))
 	go func() {
 		for {
 			if u.InputPort.SerialPort == nil || u.OutputPort.SerialPort == nil {

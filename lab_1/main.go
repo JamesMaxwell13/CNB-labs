@@ -8,6 +8,7 @@ import (
 	"go.bug.st/serial"
 	"lab_1/gui"
 	"lab_1/rs232"
+	"sort"
 	"sync"
 	"time"
 )
@@ -63,6 +64,7 @@ func main() {
 		time.Sleep(time.Minute)
 		panic("No serial ports found!")
 	}
+	sort.Sort(rs232.ByNumericSuffix(ports))
 	u.InputPort = new(rs232.Port)
 	u.OutputPort = new(rs232.Port)
 	u.TransmittedBytes = 0
@@ -71,7 +73,7 @@ func main() {
 	u.UpdateStatus()
 	u.MakeGrid()
 	w.SetContent(u.Grid)
-	w.Resize(fyne.NewSize(700, 450))
+	w.Resize(fyne.NewSize(675, 475))
 	go func() {
 		for {
 			if u.InputPort.SerialPort == nil || u.OutputPort.SerialPort == nil {

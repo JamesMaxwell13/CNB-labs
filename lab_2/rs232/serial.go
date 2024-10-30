@@ -7,11 +7,14 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"sort"
+	"strconv"
 	"strings"
 )
 
 type Port struct {
 	Name       string
+	Number     int
 	SerialPort serial.Port
 }
 
@@ -32,6 +35,7 @@ func (p *Port) OpenPort(name string) (serial.Port, error) {
 	}
 	p.Name = name
 	p.SerialPort = port
+	p.Number = extractNum(name)
 	log.Printf("Port %s opened successful\n", name)
 	return port, nil
 }
@@ -84,6 +88,21 @@ func (p *Port) ReadBytes() ([]byte, error) {
 	return buff[:n], nil
 }
 
+func (p *Port) PortNumber() (int, error) {
+	var numberStr string
+	for i := len(p.Name) - 1; i >= 0; i-- {
+		if p.Name[i] >= '0' && p.Name[i] <= '9' {
+			numberStr = string(p.Name[i]) + numberStr
+		} else {
+			break
+		}
+	}
+	if numberStr == "" {
+		return 0, errors.New("No number found in port name")
+	}
+	return strconv.Atoi(numberStr)
+}
+
 func PortIsOpen(name string) bool {
 	cmd := exec.Command("fuser", name)
 	output, err := cmd.Output()
@@ -110,8 +129,45 @@ func PortIsOpenThisProcess(name string) bool {
 	return false
 }
 
+type ByNumber []string
+
+func (s ByNumber) Len() int {
+	return len(s)
+}
+
+func (s ByNumber) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func (s ByNumber) Less(i, j int) bool {
+	numI := extractNum(s[i])
+	numJ := extractNum(s[j])
+	return numI < numJ
+}
+
+func extractNum(s string) int {
+	for i := len(s) - 1; i >= 0; i-- {
+		if s[i] < '0' || s[i] > '9' {
+			if i == len(s)-1 {
+				return 0
+			}
+			num, err := strconv.Atoi(s[i+1:])
+			if err != nil {
+				return 0
+			}
+			return num
+		}
+	}
+	num, err := strconv.Atoi(s)
+	if err != nil {
+		return 0
+	}
+	return num
+}
+
 func RemovePorts() ([]string, error) {
 	ports, err := serial.GetPortsList()
+	sort.Sort(ByNumber(ports))
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +184,7 @@ func RemovePorts() ([]string, error) {
 					i++
 				} else {
 					if !PortIsOpen(ports[i-1]) && len(availablePorts) > 0 {
-						availablePorts = append(availablePorts[0 : len(availablePorts)-1])
+						availablePorts = availablePorts[:len(availablePorts)-1]
 					}
 				}
 			}
