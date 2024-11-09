@@ -20,7 +20,7 @@ type Port struct {
 
 func DefaultConfig() *serial.Mode {
 	return &serial.Mode{
-		BaudRate: 4000000,
+		BaudRate: 115200,
 		DataBits: 8,
 		StopBits: serial.OneStopBit,
 		Parity:   serial.NoParity,

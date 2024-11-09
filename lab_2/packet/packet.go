@@ -66,7 +66,7 @@ func (packet *Packet) PacketToRaw() []byte {
 
 func SerializePacket(data string, source int) ([]byte, string, error) {
 	if len(data) != 7 {
-		return nil, "", errors.New("Empty data in packet")
+		return nil, "", errors.New("Wrong data in packet")
 	}
 	packet := NewPacket(source, data)
 	stuffedPacket := BitStuffing(packet)
@@ -83,7 +83,6 @@ func DeserializePacket(rawPacket []byte) (string, error) {
 		return "", err
 	}
 	data := DataToStr(deStuffedPacket.Data[:])
-	fmt.Println(deStuffedPacket)
 	return data, err
 }
 

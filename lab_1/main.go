@@ -34,6 +34,15 @@ func TransmitData(u *gui.UserInterface) {
 	}
 }
 
+//for _, newChar := range newChars {
+//err := u.InputPort.WriteBytes([]byte(string(newChar)))
+//if err != nil {
+//gui.ErrorWindow(err, u.App)
+//}
+//u.TransmittedBytes += len([]byte(string(newChar)))
+//u.UpdateStatus()
+//}
+
 func ReceiveData(u *gui.UserInterface, mutex *sync.Mutex) {
 	for {
 		mutex.Lock()
@@ -64,7 +73,7 @@ func main() {
 		time.Sleep(time.Minute)
 		panic("No serial ports found!")
 	}
-	sort.Sort(rs232.ByNumericSuffix(ports))
+	sort.Sort(rs232.ByNumber(ports))
 	u.InputPort = new(rs232.Port)
 	u.OutputPort = new(rs232.Port)
 	u.TransmittedBytes = 0

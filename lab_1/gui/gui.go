@@ -114,7 +114,16 @@ func (u *UserInterface) InitEntries() {
 			u.InputEntry.SetText(prevText)
 			u.InputEntry.CursorRow = len(newText)
 		} else {
-			prevText = newText
+			filteredText := ""
+			for _, char := range newText {
+				if char != '\t' && char != '\v' && char != '\b' && char != '\r' {
+					filteredText += string(char)
+				}
+			}
+			if filteredText != newText {
+				u.InputEntry.SetText(filteredText)
+			}
+			prevText = filteredText
 		}
 	}
 	u.OutputEntry = InitReadOnlyEntry()
