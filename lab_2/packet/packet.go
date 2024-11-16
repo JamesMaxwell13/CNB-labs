@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"log"
 )
 
 type Packet struct {
@@ -71,6 +72,7 @@ func SerializePacket(data string, source int) ([]byte, string, error) {
 	packet := NewPacket(source, data)
 	stuffedPacket := BitStuffing(packet)
 	formattedPacket := FindStuffedBits(stuffedPacket)
+	log.Printf("Serialize packet: %s", formattedPacket)
 	return stuffedPacket, formattedPacket, nil
 }
 
@@ -83,6 +85,7 @@ func DeserializePacket(rawPacket []byte) (string, error) {
 		return "", err
 	}
 	data := DataToStr(deStuffedPacket.Data[:])
+	log.Printf("Deserialized data: %s", data)
 	return data, err
 }
 

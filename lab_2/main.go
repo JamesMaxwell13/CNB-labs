@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -16,11 +17,11 @@ import (
 func TransmitData(u *gui.UserInterface) {
 	prevText := ""
 	for {
-		if u.InputEntry != nil && u.InputPort.SerialPort != nil {
+		if u.InputEntry != nil && u.InputPort.SerialPort != nil && u.InputPort.Number != 0 {
 			currentText := u.InputEntry.Text
-			if len(currentText)-len(prevText) == 7 {
+			for len(currentText)-len(prevText) >= 7 {
 				rawPacket, formattedPacket, err := packet.SerializePacket(
-					currentText[len(prevText):],
+					currentText[len(prevText):len(prevText)+7],
 					u.InputPort.Number,
 				)
 				if err != nil {
@@ -32,7 +33,7 @@ func TransmitData(u *gui.UserInterface) {
 				}
 				u.TransmittedBytes += 7
 				u.UpdateStatus(formattedPacket)
-				prevText = currentText
+				prevText = currentText[:len(prevText)+7]
 			}
 		}
 	}
@@ -48,8 +49,17 @@ func ReceiveData(u *gui.UserInterface, mutex *sync.Mutex) {
 				gui.ErrorWindow(err, u.App)
 				continue
 			}
-			if len(rawData) > 0 {
-				data, errPacket := packet.DeserializePacket(rawData)
+			for len(rawData) >= 24 {
+				rawPacket := rawData[:24]
+				rawData = rawData[24:]
+				for len(rawData) >= 24 && !bytes.Equal(rawData[:8], []byte{1, 0, 0, 0, 0, 1, 1, 1}) {
+					rawPacket = append(rawPacket, rawData[0])
+					rawData = rawData[1:]
+				}
+				if len(rawData) < 24 {
+					rawPacket = append(rawPacket, rawData...)
+				}
+				data, errPacket := packet.DeserializePacket(rawPacket)
 				if errPacket != nil {
 					gui.ErrorWindow(errPacket, u.App)
 					continue
@@ -81,7 +91,8 @@ func main() {
 	u.UpdateStatus("")
 	u.MakeGrid()
 	w.SetContent(u.Grid)
-	w.Resize(fyne.NewSize(675, 475))
+	w.Resize(fyne.NewSize(1200, 400))
+	//(675, 475)
 	go func() {
 		for {
 			if u.InputPort.SerialPort == nil || u.OutputPort.SerialPort == nil {

@@ -64,10 +64,10 @@ func (p *Port) WriteBytes(data []byte) error {
 		return err
 	}
 	log.Printf("Written %d bytes to port %s\n", n, p.Name)
-	err = p.SerialPort.ResetOutputBuffer()
-	if err != nil {
-		return err
-	}
+	//err = p.SerialPort.ResetOutputBuffer()
+	//if err != nil {
+	//	return err
+	//}
 	return nil
 }
 
@@ -80,10 +80,10 @@ func (p *Port) ReadBytes() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = p.SerialPort.ResetInputBuffer()
-	if err != nil {
-		return nil, err
-	}
+	//err = p.SerialPort.ResetInputBuffer()
+	//if err != nil {
+	//	return nil, err
+	//}
 	log.Printf("Read %d bytes from port %s\n", n, p.Name)
 	return buff[:n], nil
 }
