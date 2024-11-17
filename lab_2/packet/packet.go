@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 )
 
 type Packet struct {
@@ -12,7 +13,7 @@ type Packet struct {
 	Destination [4]byte
 	Source      [4]byte
 	Data        [7]byte
-	FCS         byte
+	FCS         [3]byte
 }
 
 func NewPacket(source int, data string) Packet {
@@ -24,7 +25,7 @@ func NewPacket(source int, data string) Packet {
 		Destination: [4]byte{0, 0, 0, 0},
 		Source:      [4]byte(StrToByte(fmt.Sprintf("%04b", source))),
 		Data:        [7]byte(StrToByte(data)),
-		FCS:         0,
+		FCS:         [3]byte{0, 0, 0},
 	}
 }
 
@@ -37,6 +38,30 @@ func StrToByte(str string) []byte {
 		rawBytes = append(rawBytes, byte(char))
 	}
 	return rawBytes
+}
+
+func CompareFlag(cmpBits []byte) bool {
+	if len(cmpBits) == 8 &&
+		(bytes.Equal(cmpBits, []byte{1, 0, 0, 0, 0, 1, 1, 1}) ||
+			bytes.Equal(cmpBits, []byte{1, '\n', 0, 0, 0, 1, 1, 1}) ||
+			bytes.Equal(cmpBits, []byte{1, 0, '\n', 0, 0, 1, 1, 1}) ||
+			bytes.Equal(cmpBits, []byte{1, 0, 0, '\n', 0, 1, 1, 1}) ||
+			bytes.Equal(cmpBits, []byte{1, 0, 0, 0, '\n', 1, 1, 1})) {
+		return true
+	}
+	return false
+}
+
+func CompareStuffedFlag(cmpBits []byte) bool {
+	if len(cmpBits) == 8 &&
+		(bytes.Equal(cmpBits, []byte{1, 0, 0, 0, 0, 1, 1, 0}) ||
+			bytes.Equal(cmpBits, []byte{1, '\n', 0, 0, 0, 1, 1, 0}) ||
+			bytes.Equal(cmpBits, []byte{1, 0, '\n', 0, 0, 1, 1, 0}) ||
+			bytes.Equal(cmpBits, []byte{1, 0, 0, '\n', 0, 1, 1, 0}) ||
+			bytes.Equal(cmpBits, []byte{1, 0, 0, 0, '\n', 1, 1, 0})) {
+		return true
+	}
+	return false
 }
 
 func DataToStr(rawBytes []byte) string {
@@ -57,7 +82,7 @@ func (packet *Packet) PacketToRaw() []byte {
 		packet.Destination[:],
 		packet.Source[:],
 		packet.Data[:],
-		{packet.FCS},
+		packet.FCS[:],
 	}
 	for _, field := range fields {
 		rawPacket = append(rawPacket, field...)
@@ -76,6 +101,27 @@ func SerializePacket(data string, source int) ([]byte, string, error) {
 	return stuffedPacket, formattedPacket, nil
 }
 
+func ParseRawData(rawData []byte) (string, error) {
+	newText := ""
+	for len(rawData) >= 26 {
+		rawPacket := rawData[:26]
+		rawData = rawData[26:]
+		for len(rawData) >= 26 && !CompareFlag(rawData[:8]) {
+			rawPacket = append(rawPacket, rawData[0])
+			rawData = rawData[1:]
+		}
+		if len(rawData) < 26 {
+			rawPacket = append(rawPacket, rawData...)
+		}
+		data, err := DeserializePacket(rawPacket)
+		if err != nil {
+			return newText, err
+		}
+		newText += data
+	}
+	return newText, nil
+}
+
 func DeserializePacket(rawPacket []byte) (string, error) {
 	if len(rawPacket) < 24 {
 		return "", errors.New("Packet is too short")
@@ -84,15 +130,15 @@ func DeserializePacket(rawPacket []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	log.Printf("Deserialize packet: %s", rawPacket)
 	data := DataToStr(deStuffedPacket.Data[:])
-	log.Printf("Deserialized data: %s", data)
 	return data, err
 }
 
 func BitStuffing(packet Packet) []byte {
 	stuffedPacket := packet.PacketToRaw()
 	for i := 7; i < len(stuffedPacket)-7; i++ {
-		if bytes.Equal(stuffedPacket[i:i+8], []byte{1, 0, 0, 0, 0, 1, 1, 1}) {
+		if CompareFlag(stuffedPacket[i : i+8]) {
 			stuffedPacket = append(stuffedPacket[:i+7],
 				append([]byte{0}, stuffedPacket[i+7:]...)...)
 			i += 7
@@ -102,15 +148,15 @@ func BitStuffing(packet Packet) []byte {
 }
 
 func DeBitStuffing(packet []byte) (Packet, error) {
-	if len(packet) < 24 || !bytes.Equal(packet[:8], []byte{1, 0, 0, 0, 0, 1, 1, 1}) {
+	if len(packet) < 26 || !bytes.Equal(packet[:8], []byte{1, 0, 0, 0, 0, 1, 1, 1}) {
 		return Packet{}, errors.New("Invalid packet")
 	} else {
 		deStuffedPacket := NewPacket(0, "0000000")
 		for i := 7; i < len(packet); i++ {
-			if len(packet) == 24 {
+			if len(packet) == 26 {
 				break
 			}
-			if bytes.Equal(packet[i:i+8], []byte{1, 0, 0, 0, 0, 1, 1, 0}) {
+			if CompareStuffedFlag(packet[i : i+8]) {
 				packet = append(packet[:i+7], packet[i+8:]...)
 				i += 6
 			}
@@ -119,7 +165,7 @@ func DeBitStuffing(packet []byte) (Packet, error) {
 		copy(deStuffedPacket.Destination[:], packet[8:12])
 		copy(deStuffedPacket.Source[:], packet[12:16])
 		copy(deStuffedPacket.Data[:], packet[16:23])
-		deStuffedPacket.FCS = packet[23]
+		copy(deStuffedPacket.FCS[:], packet[23:])
 		return deStuffedPacket, nil
 	}
 }
@@ -127,10 +173,17 @@ func DeBitStuffing(packet []byte) (Packet, error) {
 func FindStuffedBits(packet []byte) string {
 	strPacket := DataToStr(packet)
 	formattedPacket := strPacket[:7]
+	stuffedBits := 0
 	for i := 7; i < len(packet); i++ {
-		if i+8 < len(packet) && strPacket[i:i+8] == "10000110" {
+		if i == 23+stuffedBits {
+			formattedPacket += " "
+		}
+		if i+8 < len(packet) && (strPacket[i:i+8] == "10000110" ||
+			strPacket[i:i+8] == "1\n000110" || strPacket[i:i+8] == "10\n00110" ||
+			strPacket[i:i+8] == "100\n0110" || strPacket[i:i+8] == "1000\n110") {
 			formattedPacket += strPacket[i : i+7]
 			formattedPacket += "-" + string(strPacket[i+7]) + "-"
+			stuffedBits++
 			i += 7
 		} else {
 			if strPacket[i] == '\n' {
@@ -140,5 +193,6 @@ func FindStuffedBits(packet []byte) string {
 			}
 		}
 	}
+	formattedPacket = strings.ReplaceAll(formattedPacket, "\n", "\\n")
 	return formattedPacket
 }
