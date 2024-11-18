@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -49,23 +48,12 @@ func ReceiveData(u *gui.UserInterface, mutex *sync.Mutex) {
 				gui.ErrorWindow(err, u.App)
 				continue
 			}
-			for len(rawData) >= 24 {
-				rawPacket := rawData[:24]
-				rawData = rawData[24:]
-				for len(rawData) >= 24 && !bytes.Equal(rawData[:8], []byte{1, 0, 0, 0, 0, 1, 1, 1}) {
-					rawPacket = append(rawPacket, rawData[0])
-					rawData = rawData[1:]
-				}
-				if len(rawData) < 24 {
-					rawPacket = append(rawPacket, rawData...)
-				}
-				data, errPacket := packet.DeserializePacket(rawPacket)
-				if errPacket != nil {
-					gui.ErrorWindow(errPacket, u.App)
-					continue
-				}
-				u.OutputEntry.SetText(u.OutputEntry.Text + data)
+			data, errPacket := packet.ParseRawData(rawData)
+			if errPacket != nil {
+				gui.ErrorWindow(errPacket, u.App)
 			}
+			u.OutputEntry.SetText(u.OutputEntry.Text + data)
+			u.OutputEntry.SetText(u.OutputEntry.Text + data)
 		} else {
 			mutex.Unlock()
 		}
@@ -91,8 +79,7 @@ func main() {
 	u.UpdateStatus("")
 	u.MakeGrid()
 	w.SetContent(u.Grid)
-	w.Resize(fyne.NewSize(1200, 400))
-	//(675, 475)
+	w.Resize(fyne.NewSize(675, 475))
 	go func() {
 		for {
 			if u.InputPort.SerialPort == nil || u.OutputPort.SerialPort == nil {

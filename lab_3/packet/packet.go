@@ -42,30 +42,6 @@ func StrToByte(str string) []byte {
 	return rawBytes
 }
 
-func CompareFlag(cmpBits []byte) bool {
-	if len(cmpBits) == 8 &&
-		(bytes.Equal(cmpBits, []byte{1, 0, 0, 0, 0, 1, 1, 1}) ||
-			bytes.Equal(cmpBits, []byte{1, '\n', 0, 0, 0, 1, 1, 1}) ||
-			bytes.Equal(cmpBits, []byte{1, 0, '\n', 0, 0, 1, 1, 1}) ||
-			bytes.Equal(cmpBits, []byte{1, 0, 0, '\n', 0, 1, 1, 1}) ||
-			bytes.Equal(cmpBits, []byte{1, 0, 0, 0, '\n', 1, 1, 1})) {
-		return true
-	}
-	return false
-}
-
-func CompareStuffedFlag(cmpBits []byte) bool {
-	if len(cmpBits) == 8 &&
-		(bytes.Equal(cmpBits, []byte{1, 0, 0, 0, 0, 1, 1, 0}) ||
-			bytes.Equal(cmpBits, []byte{1, '\n', 0, 0, 0, 1, 1, 0}) ||
-			bytes.Equal(cmpBits, []byte{1, 0, '\n', 0, 0, 1, 1, 0}) ||
-			bytes.Equal(cmpBits, []byte{1, 0, 0, '\n', 0, 1, 1, 0}) ||
-			bytes.Equal(cmpBits, []byte{1, 0, 0, 0, '\n', 1, 1, 0})) {
-		return true
-	}
-	return false
-}
-
 func DataToStr(rawBytes []byte) string {
 	str := ""
 	for _, rawByte := range rawBytes {
@@ -108,7 +84,7 @@ func ParseRawData(rawData []byte) (string, error) {
 	for len(rawData) >= 26 {
 		rawPacket := rawData[:26]
 		rawData = rawData[26:]
-		for len(rawData) >= 26 && !CompareFlag(rawData[:8]) {
+		for len(rawData) >= 26 && !bytes.Equal(rawData[:8], []byte{1, 0, 0, 0, 0, 1, 1, 1}) {
 			rawPacket = append(rawPacket, rawData[0])
 			rawData = rawData[1:]
 		}
@@ -140,7 +116,7 @@ func DeserializePacket(rawPacket []byte) (string, error) {
 func BitStuffing(packet Packet) []byte {
 	stuffedPacket := packet.PacketToRaw()
 	for i := 7; i < len(stuffedPacket)-7; i++ {
-		if CompareFlag(stuffedPacket[i : i+8]) {
+		if bytes.Equal(stuffedPacket[i:i+8], []byte{1, 0, 0, 0, 0, 1, 1, 1}) {
 			stuffedPacket = append(stuffedPacket[:i+7],
 				append([]byte{0}, stuffedPacket[i+7:]...)...)
 			i += 7
@@ -158,7 +134,7 @@ func DeBitStuffing(packet []byte) (Packet, error) {
 			if len(packet) == 26 {
 				break
 			}
-			if CompareStuffedFlag(packet[i : i+8]) {
+			if bytes.Equal(packet[i:i+8], []byte{1, 0, 0, 0, 0, 1, 1, 0}) {
 				packet = append(packet[:i+7], packet[i+8:]...)
 				i += 6
 			}
@@ -180,19 +156,13 @@ func FindStuffedBits(packet []byte) string {
 		if i == 23+stuffedBits {
 			formattedPacket += " "
 		}
-		if i+8 < len(packet) && (strPacket[i:i+8] == "10000110" ||
-			strPacket[i:i+8] == "1\n000110" || strPacket[i:i+8] == "10\n00110" ||
-			strPacket[i:i+8] == "100\n0110" || strPacket[i:i+8] == "1000\n110") {
+		if i+8 < len(packet) && strPacket[i:i+8] == "10000110" {
 			formattedPacket += strPacket[i : i+7]
 			formattedPacket += "-" + string(strPacket[i+7]) + "-"
 			stuffedBits++
 			i += 7
 		} else {
-			if strPacket[i] == '\n' {
-				formattedPacket += "\\n"
-			} else {
-				formattedPacket += string(strPacket[i])
-			}
+			formattedPacket += string(strPacket[i])
 		}
 	}
 	formattedPacket = strings.ReplaceAll(formattedPacket, "\n", "\\n")
@@ -210,18 +180,26 @@ func Destortion(packet Packet) Packet {
 	source := rand.NewSource(time.Now().UnixNano())
 	random := rand.New(source)
 	bitError := random.Intn(7)
-	if Chance(30) && packet.Data[bitError] == 1 {
-		packet.Data[bitError] = 0
+	if Chance(30) && packet.Data[bitError-1] == 1 {
+		packet.Data[bitError-1] = 0
 	} else {
-		packet.Data[bitError] = 1
+		packet.Data[bitError-1] = 1
 	}
 	return packet
 }
 
 func GetHammingFCS(data [7]byte) [3]byte {
+	var code []byte
+	code[0] = 0
+	code[1] = 0
+	code[2] = data[0]
+	code[3] = 0
+	code = append(code[:3], data[1:]...)
+
 	return [3]byte(data[:3])
 }
 
 func EliminatingDistortion(data [7]byte, FCS [3]byte) [7]byte {
+
 	return data
 }
