@@ -53,7 +53,6 @@ func ReceiveData(u *gui.UserInterface, mutex *sync.Mutex) {
 				gui.ErrorWindow(errPacket, u.App)
 			}
 			u.OutputEntry.SetText(u.OutputEntry.Text + data)
-			u.OutputEntry.SetText(u.OutputEntry.Text + data)
 		} else {
 			mutex.Unlock()
 		}
