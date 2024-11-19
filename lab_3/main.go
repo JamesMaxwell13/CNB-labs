@@ -78,8 +78,7 @@ func main() {
 	u.UpdateStatus("")
 	u.MakeGrid()
 	w.SetContent(u.Grid)
-	w.Resize(fyne.NewSize(1200, 400))
-	//(675, 475)
+	w.Resize(fyne.NewSize(675, 475))
 	go func() {
 		for {
 			if u.InputPort.SerialPort == nil || u.OutputPort.SerialPort == nil {

@@ -38,7 +38,7 @@ func (c СustomTheme) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant)
 func ErrorWindow(err error, a fyne.App) {
 	w := a.NewWindow("Error")
 	ok := widget.NewButton("Ok", func() { w.Close() })
-	ok.Resize(fyne.NewSize(200, 75))
+	ok.Resize(fyne.NewSize(250, 75))
 	w.SetContent(container.NewVBox(
 		container.NewCenter(
 			widget.NewLabel(
