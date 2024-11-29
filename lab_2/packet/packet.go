@@ -86,6 +86,9 @@ func ParseRawData(rawData []byte) (string, error) {
 			rawPacket = append(rawPacket, rawData[0])
 			rawData = rawData[1:]
 		}
+		if !bytes.Equal(rawPacket[:8], []byte{1, 0, 0, 0, 0, 1, 1, 1}) {
+			continue
+		}
 		if len(rawData) < 24 {
 			rawPacket = append(rawPacket, rawData...)
 		}
@@ -132,7 +135,7 @@ func DeBitStuffing(packet []byte) (Packet, error) {
 			if len(packet) == 24 {
 				break
 			}
-			if bytes.Equal(packet[i:i+8], []byte{1, 0, 0, 0, 0, 1, 1, 0}) {
+			if i+8 <= len(packet) && bytes.Equal(packet[i:i+8], []byte{1, 0, 0, 0, 0, 1, 1, 0}) {
 				packet = append(packet[:i+7], packet[i+8:]...)
 				i += 6
 			}

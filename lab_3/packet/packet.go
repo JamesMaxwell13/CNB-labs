@@ -77,7 +77,7 @@ func SerializePacket(data string, source int) ([]byte, string, error) {
 	packet.Distortion()
 	stuffedPacket := BitStuffing(packet)
 	formattedPacket := FindStuffedBits(stuffedPacket)
-	log.Printf("Serialize packet: %s", strings.ReplaceAll(DataToStr(packet.ToRaw()), "\n", "\\n"))
+	log.Printf("Serialize packet:\n%s", strings.ReplaceAll(DataToStr(packet.ToRaw()), "\n", "\\n"))
 	return stuffedPacket, formattedPacket, nil
 }
 
@@ -89,6 +89,9 @@ func ParseRawData(rawData []byte) (string, error) {
 		for len(rawData) >= 27 && !bytes.Equal(rawData[:8], []byte{1, 0, 0, 0, 0, 1, 1, 1}) {
 			rawPacket = append(rawPacket, rawData[0])
 			rawData = rawData[1:]
+		}
+		if !bytes.Equal(rawPacket[:8], []byte{1, 0, 0, 0, 0, 1, 1, 1}) {
+			continue
 		}
 		if len(rawData) < 27 {
 			rawPacket = append(rawPacket, rawData...)
@@ -110,7 +113,7 @@ func DeserializePacket(rawPacket []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	log.Printf("Deserialize packet: %s", strings.ReplaceAll(DataToStr(rawPacket), "\n", "\\n"))
+	log.Printf("Deserialize packet:\n%s", strings.ReplaceAll(DataToStr(rawPacket), "\n", "\\n"))
 	deStuffedPacket.CleanDistortion()
 	data := DataToStr(deStuffedPacket.Data[:])
 	return data, err
@@ -182,7 +185,7 @@ func Chance(percent int) bool {
 func (p *Packet) Distortion() Packet {
 	source := rand.NewSource(time.Now().UnixNano())
 	random := rand.New(source)
-	bitError := random.Intn(6)
+	bitError := random.Intn(7)
 	if Chance(30) {
 		if p.Data[bitError] == 1 {
 			p.Data[bitError] = 0
@@ -206,14 +209,6 @@ func (p *Packet) GetHammingFCS() [4]byte {
 	p.FCS[3] = data[4] ^ data[5] ^ data[6]
 	return p.FCS
 }
-
-//      0   1 2 3   4 5 6
-// 	х х 1 х 0 1 0 х 1 0 1
-//	0 1 2 3 4 5 6 7 8 9 10
-//0 х   х   х   х   х   х	1
-//1   х х     х х     х х	1
-//2       х х х х			1
-//3					х х х	0
 
 func (p *Packet) CleanDistortion() [7]byte {
 	code := make([]byte, 4)
@@ -267,3 +262,12 @@ func (p *Packet) CleanDistortion() [7]byte {
 	copy(p.Data[:], buff)
 	return p.Data
 }
+
+//			Hamming code
+// data: 0   1 2 3   4 5 6
+// 	 p p 1 p 0 1 0 p 1 0 1
+//	 0 1 2 3 4 5 6 7 8 9 10
+// 0 х   х   х   х   х   х	1
+// 1   х х     х х     х х	1
+// 2       х х х х			1
+// 3				 х х х	0

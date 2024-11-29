@@ -6,9 +6,9 @@
   <component name="ChangeListManager">
     <list default="true" id="f977fdc0-0421-4133-9dd0-a712eeeea1ad" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../lab_3/gui/gui.go" beforeDir="false" afterPath="$PROJECT_DIR$/../lab_3/gui/gui.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lab_2" beforeDir="false" afterPath="$PROJECT_DIR$/lab_2" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/packet/packet.go" beforeDir="false" afterPath="$PROJECT_DIR$/packet/packet.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../lab_3/lab_3" beforeDir="false" afterPath="$PROJECT_DIR$/../lab_3/lab_3" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../lab_3/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/../lab_3/main.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../lab_3/packet/packet.go" beforeDir="false" afterPath="$PROJECT_DIR$/../lab_3/packet/packet.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -32,6 +32,7 @@
   &quot;keyToString&quot;: {
     &quot;Go Build.go build lab_2.executor&quot;: &quot;Debug&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.go.formatter.settings.were.checked&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.go.migrated.go.modules.settings&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.go.modules.go.list.on.any.changes.was.set&quot;: &quot;true&quot;,
@@ -59,8 +60,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-gosdk-5df93f7ad4aa-df9ad98b711f-org.jetbrains.plugins.go.sharedIndexes.bundled-GO-242.23339.24" />
-        <option value="bundled-js-predefined-d6986cc7102b-5c90d61e3bab-JavaScript-GO-242.23339.24" />
+        <option value="bundled-gosdk-d297c17c1fbd-b87a2f8923ed-org.jetbrains.plugins.go.sharedIndexes.bundled-GO-243.21565.208" />
+        <option value="bundled-js-predefined-d6986cc7102b-e768b9ed790e-JavaScript-GO-243.21565.208" />
       </set>
     </attachedChunks>
   </component>
