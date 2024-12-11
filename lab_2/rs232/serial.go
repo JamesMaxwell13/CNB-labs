@@ -174,21 +174,21 @@ func RemovePorts() ([]string, error) {
 	if len(ports) == 0 {
 		return nil, errors.New("No serial ports found!")
 	}
-	availablePorts := make([]string, 0)
-	for i := 0; i < len(ports); i++ {
-		if !PortIsOpen(ports[i]) {
-			availablePorts = append(availablePorts, ports[i])
-		} else {
-			if PortIsOpenThisProcess(ports[i]) {
-				if i%2 == 0 {
-					i++
-				} else {
-					if !PortIsOpen(ports[i-1]) && len(availablePorts) > 0 {
-						availablePorts = availablePorts[:len(availablePorts)-1]
-					}
-				}
-			}
-		}
-	}
-	return availablePorts, nil
+	//availablePorts := make([]string, 0)
+	//for i := 0; i < len(ports); i++ {
+	//	if !PortIsOpen(ports[i]) {
+	//		availablePorts = append(availablePorts, ports[i])
+	//	} else {
+	//		if PortIsOpenThisProcess(ports[i]) {
+	//			if i%2 == 0 {
+	//				i++
+	//			} else {
+	//				if !PortIsOpen(ports[i-1]) && len(availablePorts) > 0 {
+	//					availablePorts = availablePorts[:len(availablePorts)-1]
+	//				}
+	//			}
+	//		}
+	//	}
+	//}
+	return ports, nil
 }

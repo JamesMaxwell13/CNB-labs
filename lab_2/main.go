@@ -30,7 +30,7 @@ func TransmitData(u *gui.UserInterface) {
 				if err != nil {
 					gui.ErrorWindow(err, u.App)
 				}
-				u.TransmittedBytes += 7
+				u.TransmittedBytes += len(rawPacket)
 				u.UpdateStatus(formattedPacket)
 				prevText = currentText[:len(prevText)+7]
 			}

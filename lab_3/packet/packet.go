@@ -22,6 +22,7 @@ func NewPacket(source int, data string) Packet {
 	if source > 15 {
 		source %= 16
 	}
+	fmt.Println(StrToByte(data))
 	return Packet{
 		Flag:        [8]byte{1, 0, 0, 0, 0, 1, 1, 1},
 		Destination: [4]byte{0, 0, 0, 0},
@@ -122,7 +123,7 @@ func DeserializePacket(rawPacket []byte) (string, error) {
 func BitStuffing(packet Packet) []byte {
 	stuffedPacket := packet.ToRaw()
 	for i := 7; i < len(stuffedPacket)-7; i++ {
-		if bytes.Equal(stuffedPacket[i:i+8], []byte{1, 0, 0, 0, 0, 1, 1, 1}) {
+		if bytes.Equal(stuffedPacket[i:i+7], []byte{1, 0, 0, 0, 0, 1, 1}) {
 			stuffedPacket = append(stuffedPacket[:i+7],
 				append([]byte{0}, stuffedPacket[i+7:]...)...)
 			i += 7
@@ -140,7 +141,7 @@ func DeBitStuffing(packet []byte) (Packet, error) {
 			if len(packet) == 27 {
 				break
 			}
-			if i+8 <= len(packet) && bytes.Equal(packet[i:i+8], []byte{1, 0, 0, 0, 0, 1, 1, 0}) {
+			if i+8 <= len(packet) && bytes.Equal(packet[i:i+7], []byte{1, 0, 0, 0, 0, 1, 1}) {
 				packet = append(packet[:i+7], packet[i+8:]...)
 				i += 6
 			}
@@ -189,8 +190,11 @@ func (p *Packet) Distortion() Packet {
 	if Chance(30) {
 		if p.Data[bitError] == 1 {
 			p.Data[bitError] = 0
+			log.Printf("Error on data position - %d", bitError+1)
 		} else {
-			p.Data[bitError] = 1
+			if p.Data[bitError] == 0 {
+				p.Data[bitError] = 1
+			}
 		}
 	}
 	return *p
@@ -199,7 +203,7 @@ func (p *Packet) Distortion() Packet {
 func (p *Packet) GetHammingFCS() [4]byte {
 	data := p.Data
 	for i := range data {
-		if data[i] == '\n' {
+		if data[i] != 0 && data[i] != 1 {
 			data[i] = 0
 		}
 	}
@@ -220,7 +224,7 @@ func (p *Packet) CleanDistortion() [7]byte {
 	code = append(code, 0)
 	code = append(code[:8], p.Data[4:]...)
 	for i := 2; i > len(code); i++ {
-		if code[i] == '\n' {
+		if code[i] != 0 && code[i] != 1 {
 			code[i] = 0
 		}
 	}
@@ -242,7 +246,8 @@ func (p *Packet) CleanDistortion() [7]byte {
 	if code[7] != p.FCS[3] {
 		pos += 8
 	}
-	if pos != 0 {
+	if pos > 1 && pos < len(p.Data) {
+		fmt.Printf("pos - %d\nlen - %d\n", pos, len(code))
 		if code[pos-1] == 0 {
 			code[pos-1] = 1
 		} else {
@@ -271,3 +276,10 @@ func (p *Packet) CleanDistortion() [7]byte {
 // 1   х х     х х     х х	1
 // 2       х х х х			1
 // 3				 х х х	0
+
+//	 Hamming code
+// 	 1 0 1 0 1 0 1
+//	 0 1 2 3 4 5 6
+// 0 х   х   х   х 0
+// 1   х х     х х 0
+// 2       х х х х 0

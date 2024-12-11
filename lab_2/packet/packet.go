@@ -73,7 +73,7 @@ func SerializePacket(data string, source int) ([]byte, string, error) {
 	packet := NewPacket(source, data)
 	stuffedPacket := BitStuffing(packet)
 	formattedPacket := FindStuffedBits(stuffedPacket)
-	log.Printf("Serialize packet: %s", formattedPacket)
+	log.Printf("Serialized packet: %s", formattedPacket)
 	return stuffedPacket, formattedPacket, nil
 }
 
@@ -105,11 +105,12 @@ func DeserializePacket(rawPacket []byte) (string, error) {
 	if len(rawPacket) < 24 {
 		return "", errors.New("Packet is too short")
 	}
+	log.Printf("raw packet: %s", DataToStr(rawPacket))
 	deStuffedPacket, err := DeBitStuffing(rawPacket)
 	if err != nil {
 		return "", err
 	}
-	log.Printf("Deserialize packet: %s", DataToStr(rawPacket))
+	log.Printf("Deserialized packet: %s", DataToStr(rawPacket))
 	data := DataToStr(deStuffedPacket.Data[:])
 	return data, err
 }
@@ -117,7 +118,7 @@ func DeserializePacket(rawPacket []byte) (string, error) {
 func BitStuffing(packet Packet) []byte {
 	stuffedPacket := packet.PacketToRaw()
 	for i := 7; i < len(stuffedPacket)-7; i++ {
-		if bytes.Equal(stuffedPacket[i:i+8], []byte{1, 0, 0, 0, 0, 1, 1, 1}) {
+		if bytes.Equal(stuffedPacket[i:i+7], []byte{1, 0, 0, 0, 0, 1, 1}) {
 			stuffedPacket = append(stuffedPacket[:i+7],
 				append([]byte{0}, stuffedPacket[i+7:]...)...)
 			i += 7
@@ -135,7 +136,7 @@ func DeBitStuffing(packet []byte) (Packet, error) {
 			if len(packet) == 24 {
 				break
 			}
-			if i+8 <= len(packet) && bytes.Equal(packet[i:i+8], []byte{1, 0, 0, 0, 0, 1, 1, 0}) {
+			if i+8 <= len(packet) && bytes.Equal(packet[i:i+7], []byte{1, 0, 0, 0, 0, 1, 1}) {
 				packet = append(packet[:i+7], packet[i+8:]...)
 				i += 6
 			}
