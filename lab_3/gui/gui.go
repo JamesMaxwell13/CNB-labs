@@ -177,7 +177,7 @@ func (u *UserInterface) UpdateStatus(formattedPacket string) {
 	status := fmt.Sprintf("Ports parameters:\n"+
 		"Baudrate - %d\nData bits - %d\nStop bits - %d\n"+
 		"Parity - No\nStatus bits - RTS=true, DTR=true\n"+
-		"Bytes transmitted - %d,\nPacket structure -\n%s", mode.BaudRate, mode.DataBits,
+		"Bytes transmitted - %d\nPacket structure -\n%s", mode.BaudRate, mode.DataBits,
 		int(mode.StopBits)+1, u.TransmittedBytes, formattedPacket)
 	u.StatusEntry.SetText(status)
 }

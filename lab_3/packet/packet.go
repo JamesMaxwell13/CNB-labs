@@ -15,7 +15,7 @@ type Packet struct {
 	Destination [4]byte
 	Source      [4]byte
 	Data        [7]byte
-	FCS         [4]byte
+	FCS         [3]byte
 }
 
 func NewPacket(source int, data string) Packet {
@@ -28,7 +28,7 @@ func NewPacket(source int, data string) Packet {
 		Destination: [4]byte{0, 0, 0, 0},
 		Source:      [4]byte(StrToByte(fmt.Sprintf("%04b", source))),
 		Data:        [7]byte(StrToByte(data)),
-		FCS:         [4]byte{0, 0, 0, 0},
+		FCS:         [3]byte{0, 0, 0},
 	}
 }
 
@@ -78,23 +78,23 @@ func SerializePacket(data string, source int) ([]byte, string, error) {
 	packet.Distortion()
 	stuffedPacket := BitStuffing(packet)
 	formattedPacket := FindStuffedBits(stuffedPacket)
-	log.Printf("Serialize packet:\n%s", strings.ReplaceAll(DataToStr(packet.ToRaw()), "\n", "\\n"))
+	log.Printf("Serialize packet:\n%s", strings.ReplaceAll(formattedPacket, "\n", "\\n"))
 	return stuffedPacket, formattedPacket, nil
 }
 
 func ParseRawData(rawData []byte) (string, error) {
 	newText := ""
-	for len(rawData) >= 27 {
-		rawPacket := rawData[:27]
-		rawData = rawData[27:]
-		for len(rawData) >= 27 && !bytes.Equal(rawData[:8], []byte{1, 0, 0, 0, 0, 1, 1, 1}) {
+	for len(rawData) >= 26 {
+		rawPacket := rawData[:26]
+		rawData = rawData[26:]
+		for len(rawData) >= 26 && !bytes.Equal(rawData[:8], []byte{1, 0, 0, 0, 0, 1, 1, 1}) {
 			rawPacket = append(rawPacket, rawData[0])
 			rawData = rawData[1:]
 		}
 		if !bytes.Equal(rawPacket[:8], []byte{1, 0, 0, 0, 0, 1, 1, 1}) {
 			continue
 		}
-		if len(rawData) < 27 {
+		if len(rawData) < 26 {
 			rawPacket = append(rawPacket, rawData...)
 		}
 		data, err := DeserializePacket(rawPacket)
@@ -107,14 +107,14 @@ func ParseRawData(rawData []byte) (string, error) {
 }
 
 func DeserializePacket(rawPacket []byte) (string, error) {
-	if len(rawPacket) < 27 {
+	if len(rawPacket) < 26 {
 		return "", errors.New("Packet is too short")
 	}
+	log.Printf("Deserialize packet:\n%s", strings.ReplaceAll(DataToStr(rawPacket), "\n", "\\n"))
 	deStuffedPacket, err := DeBitStuffing(rawPacket)
 	if err != nil {
 		return "", err
 	}
-	log.Printf("Deserialize packet:\n%s", strings.ReplaceAll(DataToStr(rawPacket), "\n", "\\n"))
 	deStuffedPacket.CleanDistortion()
 	data := DataToStr(deStuffedPacket.Data[:])
 	return data, err
@@ -133,12 +133,12 @@ func BitStuffing(packet Packet) []byte {
 }
 
 func DeBitStuffing(packet []byte) (Packet, error) {
-	if len(packet) < 27 || !bytes.Equal(packet[:8], []byte{1, 0, 0, 0, 0, 1, 1, 1}) {
+	if len(packet) < 26 || !bytes.Equal(packet[:8], []byte{1, 0, 0, 0, 0, 1, 1, 1}) {
 		return Packet{}, errors.New("Invalid packet")
 	} else {
 		deStuffedPacket := NewPacket(0, "0000000")
 		for i := 7; i < len(packet); i++ {
-			if len(packet) == 27 {
+			if len(packet) == 26 {
 				break
 			}
 			if i+8 <= len(packet) && bytes.Equal(packet[i:i+7], []byte{1, 0, 0, 0, 0, 1, 1}) {
@@ -190,7 +190,6 @@ func (p *Packet) Distortion() Packet {
 	if Chance(30) {
 		if p.Data[bitError] == 1 {
 			p.Data[bitError] = 0
-			log.Printf("Error on data position - %d", bitError+1)
 		} else {
 			if p.Data[bitError] == 0 {
 				p.Data[bitError] = 1
@@ -200,86 +199,56 @@ func (p *Packet) Distortion() Packet {
 	return *p
 }
 
-func (p *Packet) GetHammingFCS() [4]byte {
+func (p *Packet) GetHammingFCS() [3]byte {
 	data := p.Data
 	for i := range data {
 		if data[i] != 0 && data[i] != 1 {
 			data[i] = 0
 		}
 	}
-	p.FCS[0] = data[0] ^ data[1] ^ data[3] ^ data[4] ^ data[6]
-	p.FCS[1] = data[0] ^ data[2] ^ data[3] ^ data[5] ^ data[6]
-	p.FCS[2] = data[1] ^ data[2] ^ data[3]
-	p.FCS[3] = data[4] ^ data[5] ^ data[6]
+	p.FCS[0] = data[0] ^ data[2] ^ data[4] ^ data[6]
+	p.FCS[1] = data[1] ^ data[2] ^ data[5] ^ data[6]
+	p.FCS[2] = data[3] ^ data[4] ^ data[5] ^ data[6]
 	return p.FCS
 }
 
-func (p *Packet) CleanDistortion() [7]byte {
-	code := make([]byte, 4)
-	code[0] = 0
-	code[1] = 0
-	code[2] = p.Data[0]
-	code[3] = 0
-	code = append(code[:4], p.Data[1:4]...)
-	code = append(code, 0)
-	code = append(code[:8], p.Data[4:]...)
-	for i := 2; i > len(code); i++ {
-		if code[i] != 0 && code[i] != 1 {
-			code[i] = 0
-		}
-	}
-	code[0] = code[2] ^ code[4] ^ code[6] ^ code[8] ^ code[10]
-	code[1] = code[2] ^ code[5] ^ code[6] ^ code[9] ^ code[10]
-	code[3] = code[4] ^ code[5] ^ code[6]
-	code[7] = code[8] ^ code[9] ^ code[10]
-	pos := 0
-
-	if code[0] != p.FCS[0] {
-		pos += 1
-	}
-	if code[1] != p.FCS[1] {
-		pos += 2
-	}
-	if code[3] != p.FCS[2] {
-		pos += 4
-	}
-	if code[7] != p.FCS[3] {
-		pos += 8
-	}
-	if pos > 1 && pos < len(p.Data) {
-		fmt.Printf("pos - %d\nlen - %d\n", pos, len(code))
-		if code[pos-1] == 0 {
-			code[pos-1] = 1
-		} else {
-			code[pos-1] = 0
-		}
-	}
-
-	buff := make([]byte, 1)
-	buff[0] = code[2]
-	buff = append(buff, code[4:7]...)
-	buff = append(buff, code[8:]...)
-	for i := range p.Data {
-		if p.Data[i] == '\n' {
-			buff[i] = '\n'
-		}
-	}
-	copy(p.Data[:], buff)
-	return p.Data
-}
-
-//			Hamming code
-// data: 0   1 2 3   4 5 6
-// 	 p p 1 p 0 1 0 p 1 0 1
-//	 0 1 2 3 4 5 6 7 8 9 10
-// 0 х   х   х   х   х   х	1
-// 1   х х     х х     х х	1
-// 2       х х х х			1
-// 3				 х х х	0
-
 //	 Hamming code
-// 	 1 0 1 0 1 0 1
+//	 1 1 1 1 1 1 1
 //	 0 1 2 3 4 5 6
+//
 // 0 х   х   х   х 0
 // 1   х х     х х 0
 // 2       х х х х 0
+
+func (p *Packet) CleanDistortion() [7]byte {
+	var newFCS [3]byte
+	data := p.Data
+	for i := range data {
+		if data[i] != 0 && data[i] != 1 {
+			data[i] = 0
+		}
+	}
+	newFCS[0] = data[0] ^ data[2] ^ data[4] ^ data[6]
+	newFCS[1] = data[1] ^ data[2] ^ data[5] ^ data[6]
+	newFCS[2] = data[3] ^ data[4] ^ data[5] ^ data[6]
+	pos := 0
+
+	if newFCS[0] != p.FCS[0] {
+		pos += 1
+	}
+	if newFCS[1] != p.FCS[1] {
+		pos += 2
+	}
+	if newFCS[2] != p.FCS[2] {
+		pos += 4
+	}
+
+	if pos >= 1 {
+		if p.Data[pos-1] == 0 {
+			p.Data[pos-1] = 1
+		} else {
+			p.Data[pos-1] = 0
+		}
+	}
+	return p.Data
+}

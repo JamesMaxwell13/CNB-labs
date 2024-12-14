@@ -110,7 +110,7 @@ func DeserializePacket(rawPacket []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	log.Printf("Deserialized packet: %s", DataToStr(rawPacket))
+	log.Printf("Deserialized packet: %s", strings.ReplaceAll(DataToStr(rawPacket), "\n", "\\n"))
 	data := DataToStr(deStuffedPacket.Data[:])
 	return data, err
 }

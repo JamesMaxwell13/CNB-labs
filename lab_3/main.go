@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/theme"
@@ -19,20 +20,21 @@ func TransmitData(u *gui.UserInterface) {
 		if u.InputEntry != nil && u.InputPort.SerialPort != nil && u.InputPort.Number != 0 {
 			currentText := u.InputEntry.Text
 			for len(currentText)-len(prevText) >= 7 {
-				rawPacket, formattedPacket, err := packet.SerializePacket(
-					currentText[len(prevText):len(prevText)+7],
-					u.InputPort.Number,
-				)
+				dataChunk := currentText[len(prevText) : len(prevText)+7]
+				fmt.Println(dataChunk)
+				rawPacket, formattedPacket, err := packet.SerializePacket(dataChunk, u.InputPort.Number)
 				if err != nil {
 					gui.ErrorWindow(err, u.App)
+					return
 				}
 				err = u.InputPort.WriteBytes(rawPacket)
 				if err != nil {
 					gui.ErrorWindow(err, u.App)
+					return
 				}
 				u.TransmittedBytes += len(rawPacket)
 				u.UpdateStatus(formattedPacket)
-				prevText = currentText[:len(prevText)+7]
+				prevText += dataChunk
 			}
 		}
 	}
