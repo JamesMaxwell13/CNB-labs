@@ -190,5 +190,5 @@ func RemovePorts() ([]string, error) {
 			}
 		}
 	}
-	return ports, nil
+	return availablePorts, nil
 }

@@ -34,10 +34,12 @@ func Delay(attempts int) {
 func Transmitter(rawPacket []byte, formattedPacket string, u *gui.UserInterface) {
 	collisionInfo := ""
 	transmittedBytes := 0
+	fmt.Println("transmitted data: ", rawPacket)
 	for transmittedBytes < len(rawPacket) {
 		attempts := 0
 		for attempts <= 16 {
 			if !ChannelBusy() {
+				log.Printf("Channel is free")
 				err := u.InputPort.WriteBytes(rawPacket[transmittedBytes : transmittedBytes+1])
 				if err != nil {
 					gui.ErrorWindow(err, u.App)
@@ -57,8 +59,6 @@ func Transmitter(rawPacket []byte, formattedPacket string, u *gui.UserInterface)
 					transmittedBytes++
 					break
 				}
-			} else {
-				//log.Printf("Channel is busy")
 			}
 		}
 		u.TransmittedBytes += 1
@@ -66,18 +66,22 @@ func Transmitter(rawPacket []byte, formattedPacket string, u *gui.UserInterface)
 	}
 }
 
+func CleanPacketPrefix(rawData []byte) []byte {
+	for i := 0; i < len(rawData)-7; i++ {
+		if bytes.Equal(rawData[i:i+8], []byte{1, 0, 0, 0, 0, 1, 1, 1}) {
+			rawData = rawData[i:]
+			fmt.Println("Fix packet: ", rawData)
+		}
+	}
+	return rawData
+}
+
 func CheckPacket(rawData []byte) bool {
 	length := len(rawData)
 	lenPacket := 26
-	fmt.Println("Check raw data: ", rawData)
 	if length >= 26 {
-		for bitNum := range rawData {
-			if bytes.Equal(rawData[bitNum:bitNum+8], []byte{1, 0, 0, 0, 0, 1, 1, 1}) {
-				rawData = rawData[bitNum:]
-				length = len(rawData)
-				break
-			}
-		}
+		rawData = CleanPacketPrefix(rawData)
+		length = len(rawData)
 		if length <= 28 && bytes.Equal(rawData[:8], []byte{1, 0, 0, 0, 0, 1, 1, 1}) {
 			for i := 7; i < length; i++ {
 				if i+8 <= length && bytes.Equal(rawData[i:i+7], []byte{1, 0, 0, 0, 0, 1, 1}) {
@@ -86,10 +90,12 @@ func CheckPacket(rawData []byte) bool {
 				}
 			}
 			if length == lenPacket {
+				fmt.Println("true packet: ", rawData)
 				return true
 			}
 		}
 	}
+	fmt.Println("false packet: ", rawData)
 	return false
 }
 
@@ -97,7 +103,6 @@ func Receiver(outputPort *rs232.Port) (string, error) {
 	newText := ""
 	rawPacket := make([]byte, 0)
 	for !CheckPacket(rawPacket) {
-		fmt.Println("read byte: ", len(rawPacket))
 		rawData, err := outputPort.ReadBytes()
 		if err != nil && err.Error() != "Port has been closed" {
 			return "", err
@@ -110,13 +115,13 @@ func Receiver(outputPort *rs232.Port) (string, error) {
 				log.Printf("Receiving collision")
 				rawPacket = rawPacket[0 : len(rawPacket)-1]
 			} else {
-				fmt.Println("add bit to packet: ", rawPacket)
 				rawPacket = append(rawPacket, rawData[bitNum])
 			}
 		}
 	}
-	fmt.Println("received packet:\n", rawPacket)
 	if CheckPacket(rawPacket) {
+		rawPacket = CleanPacketPrefix(rawPacket)
+		fmt.Println("Deserialize packet: ", rawPacket)
 		data, err := packet.DeserializePacket(rawPacket)
 		if err != nil {
 			return newText, err
