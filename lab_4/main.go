@@ -11,8 +11,8 @@ import (
 	"lab_4/gui"
 	"lab_4/packet"
 	"lab_4/rs232"
+	"runtime"
 	"strconv"
-	"sync"
 	"time"
 )
 
@@ -40,22 +40,19 @@ func TransmitData(u *gui.UserInterface) {
 				gui.ErrorWindow(errors.New("Open the both ports of the pair"), u.App)
 			}
 		}
+		runtime.GC()
 	}
 }
 
-func ReceiveData(u *gui.UserInterface, mutex *sync.Mutex) {
+func ReceiveData(u *gui.UserInterface) {
 	for {
-		mutex.Lock()
 		if u.OutputEntry != nil && u.OutputPort.SerialPort != nil {
 			data, err := csma_cd.Receiver(u.OutputPort)
-			mutex.Unlock()
 			if err != nil && err.Error() != "Port has been closed" {
 				gui.ErrorWindow(err, u.App)
 				continue
 			}
 			u.OutputEntry.SetText(u.OutputEntry.Text + data)
-		} else {
-			mutex.Unlock()
 		}
 	}
 }
@@ -93,8 +90,7 @@ func main() {
 			time.Sleep(100 * time.Millisecond)
 		}
 	}()
-	mutex := new(sync.Mutex)
 	go TransmitData(u)
-	go ReceiveData(u, mutex)
+	go ReceiveData(u)
 	w.ShowAndRun()
 }

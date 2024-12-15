@@ -2,7 +2,6 @@ package csma_cd
 
 import (
 	"bytes"
-	"fmt"
 	"lab_4/gui"
 	"lab_4/packet"
 	"lab_4/rs232"
@@ -34,19 +33,18 @@ func Delay(attempts int) {
 func Transmitter(rawPacket []byte, formattedPacket string, u *gui.UserInterface) {
 	collisionInfo := ""
 	transmittedBytes := 0
-	fmt.Println("transmitted data: ", rawPacket)
 	for transmittedBytes < len(rawPacket) {
 		attempts := 0
 		for attempts <= 16 {
 			if !ChannelBusy() {
-				log.Printf("Channel is free")
+				//log.Printf("Channel is free")
 				err := u.InputPort.WriteBytes(rawPacket[transmittedBytes : transmittedBytes+1])
 				if err != nil {
 					gui.ErrorWindow(err, u.App)
 				}
 				if Collision() {
 					attempts++
-					log.Printf("Transmitting collision")
+					//log.Printf("Transmitting collision")
 					collisionInfo += "!"
 					u.UpdateStatus(formattedPacket + " " + collisionInfo)
 					err = u.InputPort.WriteBytes([]byte("j"))
@@ -57,6 +55,7 @@ func Transmitter(rawPacket []byte, formattedPacket string, u *gui.UserInterface)
 				} else {
 					collisionInfo += ". "
 					transmittedBytes++
+					attempts = 0
 					break
 				}
 			}
@@ -70,7 +69,7 @@ func CleanPacketPrefix(rawData []byte) []byte {
 	for i := 0; i < len(rawData)-7; i++ {
 		if bytes.Equal(rawData[i:i+8], []byte{1, 0, 0, 0, 0, 1, 1, 1}) {
 			rawData = rawData[i:]
-			fmt.Println("Fix packet: ", rawData)
+			//fmt.Println("Fix packet: ", rawData)
 		}
 	}
 	return rawData
@@ -90,12 +89,12 @@ func CheckPacket(rawData []byte) bool {
 				}
 			}
 			if length == lenPacket {
-				fmt.Println("true packet: ", rawData)
+				//fmt.Println("true packet: ", rawData)
 				return true
 			}
 		}
 	}
-	fmt.Println("false packet: ", rawData)
+	//fmt.Println("false packet: ", rawData)
 	return false
 }
 
@@ -112,7 +111,7 @@ func Receiver(outputPort *rs232.Port) (string, error) {
 		}
 		for bitNum := range rawData {
 			if rawData[bitNum] == 'j' && len(rawPacket) > 0 {
-				log.Printf("Receiving collision")
+				//log.Printf("Receiving collision")
 				rawPacket = rawPacket[0 : len(rawPacket)-1]
 			} else {
 				rawPacket = append(rawPacket, rawData[bitNum])
@@ -121,7 +120,7 @@ func Receiver(outputPort *rs232.Port) (string, error) {
 	}
 	if CheckPacket(rawPacket) {
 		rawPacket = CleanPacketPrefix(rawPacket)
-		fmt.Println("Deserialize packet: ", rawPacket)
+		//fmt.Println("Deserialize packet: ", rawPacket)
 		data, err := packet.DeserializePacket(rawPacket)
 		if err != nil {
 			return newText, err

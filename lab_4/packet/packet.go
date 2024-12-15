@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"log"
 	"math/rand"
 	"strings"
 	"time"
@@ -73,7 +72,7 @@ func SerializePacket(data string, source int) ([]byte, string, error) {
 		return nil, "", errors.New("Wrong data in packet")
 	}
 	packet := NewPacket(source, data)
-	log.Printf("Serialize packet:\n%s", strings.ReplaceAll(DataToStr(packet.ToRaw()), "\n", "\\n"))
+	//log.Printf("Serialize packet:\n%s", strings.ReplaceAll(DataToStr(packet.ToRaw()), "\n", "\\n"))
 	packet.GetHammingFCS()
 	packet.Distortion()
 	stuffedPacket := BitStuffing(packet)
@@ -81,35 +80,11 @@ func SerializePacket(data string, source int) ([]byte, string, error) {
 	return stuffedPacket, formattedPacket, nil
 }
 
-func ParseRawData(rawData []byte) (string, error) {
-	newText := ""
-	for len(rawData) >= 26 {
-		rawPacket := rawData[:26]
-		rawData = rawData[26:]
-		for len(rawData) >= 26 && !bytes.Equal(rawData[:8], []byte{1, 0, 0, 0, 0, 1, 1, 1}) {
-			rawPacket = append(rawPacket, rawData[0])
-			rawData = rawData[1:]
-		}
-		if !bytes.Equal(rawPacket[:8], []byte{1, 0, 0, 0, 0, 1, 1, 1}) {
-			continue
-		}
-		if len(rawData) < 26 {
-			rawPacket = append(rawPacket, rawData...)
-		}
-		data, err := DeserializePacket(rawPacket)
-		if err != nil {
-			return newText, err
-		}
-		newText += data
-	}
-	return newText, nil
-}
-
 func DeserializePacket(rawPacket []byte) (string, error) {
 	if len(rawPacket) < 26 {
 		return "", errors.New("Packet is too short")
 	}
-	log.Printf("Deserialize packet:\n%s", strings.ReplaceAll(DataToStr(rawPacket), "\n", "\\n"))
+	//log.Printf("Deserialize packet:\n%s", strings.ReplaceAll(DataToStr(rawPacket), "\n", "\\n"))
 	deStuffedPacket, err := DeBitStuffing(rawPacket)
 	if err != nil {
 		return "", err
