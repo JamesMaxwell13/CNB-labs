@@ -20,13 +20,14 @@ func Collision() bool {
 }
 
 func Delay(attempts int) {
-	log.Printf("Random delay for %d attempts", attempts)
-	if attempts >= 10 {
+	//log.Printf("Random delay for %d attempts", attempts)
+	if attempts > 10 {
 		attempts = 10
 	}
 	source := rand.NewSource(time.Now().UnixNano())
 	random := rand.New(source)
 	times := random.Intn(int(math.Pow(2, float64(attempts))))
+	log.Printf("Random delay: %d ms", times)
 	time.Sleep(time.Duration(times) * time.Millisecond)
 }
 
@@ -55,12 +56,11 @@ func Transmitter(rawPacket []byte, formattedPacket string, u *gui.UserInterface)
 				} else {
 					collisionInfo += ". "
 					transmittedBytes++
-					attempts = 0
 					break
 				}
 			}
 		}
-		u.TransmittedBytes += 1
+		u.TransmittedBytes++
 		u.UpdateStatus(formattedPacket + " " + collisionInfo)
 	}
 }
@@ -69,7 +69,6 @@ func CleanPacketPrefix(rawData []byte) []byte {
 	for i := 0; i < len(rawData)-7; i++ {
 		if bytes.Equal(rawData[i:i+8], []byte{1, 0, 0, 0, 0, 1, 1, 1}) {
 			rawData = rawData[i:]
-			//fmt.Println("Fix packet: ", rawData)
 		}
 	}
 	return rawData
@@ -89,12 +88,10 @@ func CheckPacket(rawData []byte) bool {
 				}
 			}
 			if length == lenPacket {
-				//fmt.Println("true packet: ", rawData)
 				return true
 			}
 		}
 	}
-	//fmt.Println("false packet: ", rawData)
 	return false
 }
 
@@ -118,14 +115,11 @@ func Receiver(outputPort *rs232.Port) (string, error) {
 			}
 		}
 	}
-	if CheckPacket(rawPacket) {
-		rawPacket = CleanPacketPrefix(rawPacket)
-		//fmt.Println("Deserialize packet: ", rawPacket)
-		data, err := packet.DeserializePacket(rawPacket)
-		if err != nil {
-			return newText, err
-		}
-		newText += data
+	rawPacket = CleanPacketPrefix(rawPacket)
+	data, err := packet.DeserializePacket(rawPacket)
+	if err != nil {
+		return newText, err
 	}
+	newText += data
 	return newText, nil
 }

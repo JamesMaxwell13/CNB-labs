@@ -51,6 +51,7 @@ func ReceiveData(u *gui.UserInterface) {
 			}
 			u.OutputEntry.SetText(u.OutputEntry.Text + data)
 		}
+		runtime.GC()
 	}
 }
 

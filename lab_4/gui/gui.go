@@ -71,6 +71,7 @@ func (u *UserInterface) InitSelects(ports []string) {
 	u.SelectInputPort = widget.NewSelect(
 		ports,
 		func(s string) {
+			u.InputEntry.Text = ""
 			if u.InputPort.SerialPort != nil {
 				err := u.InputPort.ClosePort()
 				if err != nil {
@@ -91,12 +92,7 @@ func (u *UserInterface) InitSelects(ports []string) {
 	u.SelectOutputPort = widget.NewSelect(
 		ports,
 		func(s string) {
-			if u.OutputPort.SerialPort != nil {
-				err := u.OutputPort.ClosePort()
-				if err != nil {
-					ErrorWindow(err, u.App)
-				}
-			}
+			u.OutputEntry.SetText("")
 			_, err := u.OutputPort.OpenPort(s)
 			if err != nil {
 				ErrorWindow(err, u.App)
