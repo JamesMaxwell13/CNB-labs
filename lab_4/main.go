@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/theme"
@@ -24,18 +23,16 @@ func TransmitData(u *gui.UserInterface) {
 			currentText := u.InputEntry.Text
 			for len(currentText)-len(prevText) >= 7 {
 				dataChunk := currentText[len(prevText) : len(prevText)+7]
-				fmt.Println(dataChunk)
 				rawPacket, formattedPacket, err := packet.SerializePacket(dataChunk, u.InputPort.Number)
 				if err != nil {
 					gui.ErrorWindow(err, u.App)
 					return
 				}
-				u.UpdateStatus(formattedPacket)
 				csma_cd.Transmitter(rawPacket, formattedPacket, u)
 				prevText += dataChunk
 			}
 		} else {
-			if u.InputEntry.Text != "" {
+			if u.InputEntry.Text != "" && u.TransmittedBytes == 0 {
 				u.InputEntry.Text = ""
 				gui.ErrorWindow(errors.New("Open the both ports of the pair"), u.App)
 			}
